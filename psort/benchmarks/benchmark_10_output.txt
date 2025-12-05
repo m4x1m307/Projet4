@@ -1,0 +1,10 @@
+9NIQ,cgroup,udev,swapping,signal,scheduler,ring3,modprobe,grub,context,socket,ifconfig,runlevel,rin
+C72q,top,namespace,init,top,bash,strace,privilege,lsof,top,env,exec,cache,logrotate,namespace,daemo
+KDpI,process,swapon,halt,shell,swapon,renice,session,grub,cgroup,mkfs,mount,shell,userland,login,da
+Nbrn,shutdown,bash,swapoff,shutdown,vmstat,filesystem,uname,getty,scheduler,semaphore,filesystem,so
+Nwwm,grub,crontab,swapon,mkfs,virtual,env,lsof,service,renice,reboot,spinlock,daemon,su,journalctl,
+ZM1J,logind,context,interrupt,blkid,signal,cgroup,userland,memory,signal,inode,journalctl,bios,sudo
+j7uf,inode,fstab,umount,env,bootloader,interrupt,reboot,sudo,renice,tty,journalctl,memory,iostat,us
+nE2N,buffer,bootloader,driver,spinlock,journal,netstat,renice,bootloader,journal,hostname,getty,hos
+oLIS,crontab,vmstat,chown,syscall,passwd,uname,bios,kernel,namespace,daemon,crontab,getty,mount,bio
+yn9F,filesystem,session,paging,shell,cache,strace,daemon,sysfs,swapon,getty,whoami,context,dmesg,jo
