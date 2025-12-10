@@ -89,6 +89,10 @@ char* merge_sort(char* t, int n){
 void* sort(void* arg){
     char* tab = (char*) arg;
 
+    int n = strlen(tab);
+    char* res = merge_sort(tab, n);
+
+    pthread_exit(&res);
 }
 
 int main(int argc, char* argv[]){
@@ -124,55 +128,22 @@ int main(int argc, char* argv[]){
         if(i < reste) // redistribution des octets restants si besoin
             this_nt++;
 
-        subTab[i] = malloc(nt * sizeof(char)); //création des sous tableaux 
+        subTab[i] = malloc(this_nt * sizeof(char)); //création des sous tableaux 
         assert(subTab[i] != NULL);
         for(int j=k; j < nt; j++){
             subTab[i][j] = mmap_adr[k++]; //copie des valeurs du tableau original obtenu avec mmap dans les sous tableaux 
         }
     }
 
-    for(int i=0; i < len; i++){
+    char** results = malloc(len * sizeof(char*));
+
+
+    for(int i=0; i < len; i++)
         pthread_create(&threads[i], NULL, sort, &subTab[i]); //création de tous les threads
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    for(int i=0; i < len; i++){
-        pthread_join(threads[i], NULL);
-    }
+    for(int i=0; i < len; i++)
+        pthread_join(threads[i], &results[i]);
+    
+    
     
     
 
