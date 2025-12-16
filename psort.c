@@ -29,55 +29,59 @@
 #include <assert.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <string.h>
 
 pthread_mutex_t mutex;
 pthread_cond_t cond;
 
 // Les trois fonction qui suivent permettent d'implémenter le tri par fusion
-void split(char* t, int n, char** t1, int* n1, char** t2, int* n2){
+void split(size_t* t, int n, size_t** t1, int* n1, size_t** t2, int* n2){
     *n1 = n / 2;
     *n2 = n - *n1;
-    *t1 = mallloc(*n1 * sizeof(char));
-    *t2 = mallloc(*n2 * sizeof(char));
+    *t1 = malloc(*n1 * sizeof(size_t));
+    *t2 = malloc(*n2 * sizeof(size_t));
 
-    for(int i=0; i < *n1; i++)
-        (*t1)[i] = t[i];
-    for(int i=0; i < *n2; i++)
-        (*t2)[i] = t[i];
+    memcpy(*t1, t, *n1 * sizeof(size_t));
+    memcpy(*t2, t + (*n1), *n2 * sizeof(size_t));
 }
 
-char* merge(char* t1, int n1, char* t2, int n2){
-    int* out = malloc((n1+n2) * sizeof(char));
+size_t* merge(size_t* t1, int n1, size_t* t2, int n2, char* mmap_adr){
+    size_t* out = malloc((n1+n2) * sizeof(size_t));
     int i = 0, j = 0, k = 0;
 
     while(i < n1 && j < n2){
-        if(t1[i] < t2[j])
+        int cmp = memcmp(mmap_adr + t1[i],mmap_adr + t2[j], 4);
+
+        if(cmp < 0){
             out[k++] = t1[i++];
-        else
+        }else{
             out[k++] = t2[j++];
+        }
     }
 
-    while(i < n1)
+    while(i < n1){
         out[k++] = t1[i++];
-    while(j < n2)
+    }
+    while(j < n2){
         out[k++] = t2[j++];
+    }
 
     return out;
 }
 
-char* merge_sort(char* t, int n){
+size_t* merge_sort(size_t* t, int n, char* mmap_adr){
     if(n <= 1)
         return t;
     
-    char *t1, *t2;
+    size_t *t1, *t2;
     int n1, n2;
 
     split(t, n, &t1, &n1, &t2, &n2);
 
-    t1 = merge_sort(t1, n1);
-    t2 = merge_sort(t2, n2);
+    t1 = merge_sort(t1, n1, mmap_adr);
+    t2 = merge_sort(t2, n2, mmap_adr);
 
-    char* res = merge(t1, n1, t2, n2);
+    size_t* res = merge(t1, n1, t2, n2, mmap_adr);
 
     free(t1);
     free(t2);
@@ -85,25 +89,22 @@ char* merge_sort(char* t, int n){
     return res;
 }
 
-
+/*
 void* sort(void* arg){
     char* tab = (char*) arg;
 
-    int n = strlen(tab);
-    char* res = merge_sort(tab, n);
-
-    pthread_exit(&res);
 }
+*/
 
 int main(int argc, char* argv[]){
-    if(argc < 4)
-        fpintf(stderr, "Error: not enough parameters were given");
+    /*if(argc < 4)
+        fprintf(stderr, "Error: not enough parameters were given");
     
     pthread_mutex_init(&mutex, NULL); //initialise le verrou
     pthread_cond_init(&cond, NULL); //initialise la variable de condition
     int len = atoi(argv[3]); //nombre maximal de thread a utiliser (paramètre nb_threads)
     pthread_t* threads = malloc(len * sizeof(pthread_t)); //créer le tableau de thread
-    assert(threads != NULL);
+    assert(threads != NULL);*/
 
     int fd = open(argv[1], O_RDONLY);
     assert(fd != -1);
@@ -116,38 +117,28 @@ int main(int argc, char* argv[]){
 
     size_t size = st.st_size; //taille du fichier
 
-    int nt = size / len; //taille des sous tableaux que chaque thread va trier
-    int reste = size % len;
+    size_t key_num = size / 100;
 
-    char** subTab = malloc(len * sizeof(char*)); //création du tableau qui va contenir tous les sous tableaux du fichier 
-    assert(subTab != NULL);
+    size_t* offsets = malloc(key_num * sizeof(size_t));
+    assert(offsets != NULL);
 
-    int k = 0;
-    for(int i=0; i < len; i++){
-        int this_nt = nt;
-        if(i < reste) // redistribution des octets restants si besoin
-            this_nt++;
+    for(size_t i=0; i < key_num; i++)
+        offsets[i] = i * 100;
 
-        subTab[i] = malloc(this_nt * sizeof(char)); //création des sous tableaux 
-        assert(subTab[i] != NULL);
-        for(int j=k; j < nt; j++){
-            subTab[i][j] = mmap_adr[k++]; //copie des valeurs du tableau original obtenu avec mmap dans les sous tableaux 
-        }
+    size_t* sorted = merge_sort(offsets, key_num, mmap_adr);
+
+    FILE* output = fopen(argv[2], "wb");
+    assert(output != NULL);
+
+    for(size_t i=0; i < key_num; i++){ // affichage de test
+        //write(STDOUT_FILENO, mmap_adr + sorted[i], 100);
+        fwrite(mmap_adr + sorted[i], 1, 100, output);
     }
 
-    char** results = malloc(len * sizeof(char*));
+    if(fsync(fd) != 0)
+        fprintf(stderr, "Error : fsync got a problem");
 
-
-    for(int i=0; i < len; i++)
-        pthread_create(&threads[i], NULL, sort, &subTab[i]); //création de tous les threads
-    for(int i=0; i < len; i++)
-        pthread_join(threads[i], &results[i]);
-    
-    
-    
-    
-
-
+    free(offsets);
     munmap(mmap_adr, st.st_size);
     close(fd);
 
