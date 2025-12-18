@@ -12,7 +12,8 @@
  * Expliquez ici le fonctionnement de votre algorithme de tri,
  * et comment il est parallélisé (mentionnez vos sources si pertinent) :
  * 
- * //https://www.youtube.com/watch?v=bOk35XmHPKs
+ * vidéo expliquant le tri par fusion utilisé pour notre programme  
+ * https://www.youtube.com/watch?v=bOk35XmHPKs
  * 
  * L'algorithme de tri est celui du tri par fusion.
  * 
