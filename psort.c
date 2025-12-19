@@ -28,9 +28,6 @@
  * Vu que chaque thread travaille avec une partie différente du tableau d'indice, on a pas besoin d'implémenter un mutex
  * puisqu'il n'y a pas de risques que un thread trie des données qui sont en même temps triées par un autre thread.
  * 
- * On a observé que le nombre maximum de threads pour que ça soit encore bénéfique d'ajouter des threads est 4,
- * au delà ou en deçà de ce nombre de threads, le temps d'exécution augmente.
- * 
  ***********************************************/
 
 #include <stdio.h>
@@ -160,9 +157,9 @@ int main(int argc, char **argv) {
 
     size_t n_entries = filesize / ENTRY_SIZE;
 
-    int nb_used_threads = nb_threads; // nombre réels de threads utilisés comme expliquer dans les commentaires d'en-tête
-    if(nb_used_threads > 4)
-        nb_used_threads = 4;
+    int nb_used_threads = nb_threads; // nombre réels de threads utilisés
+    if(nb_used_threads > 32)
+        nb_used_threads = 32;
         
     if (n_entries < (size_t)nb_used_threads) { // cas où il y a plus de threads que d'entrées
         nb_used_threads = n_entries;
