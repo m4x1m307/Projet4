@@ -28,6 +28,13 @@
  * Vu que chaque thread travaille avec une partie différente du tableau d'indice, on a pas besoin d'implémenter un mutex
  * puisqu'il n'y a pas de risques que un thread trie des données qui sont en même temps triées par un autre thread.
  * 
+ * On limite volontairement le nombre maximal de threads à 32.
+ * Cette borne permet d’éviter la création excessive de threads,
+ * qui pourrait entraîner une dégradation des performances.
+ *
+ * Cette valeur constitue un compromis raisonnable, indépendant
+ * de la machine utilisée (Par exemple, notre machine obtient un résultat optimisé avec exactement 4 threads).
+ * 
  ***********************************************/
 
 #include <stdio.h>
