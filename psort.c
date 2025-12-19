@@ -17,22 +17,22 @@
  * 
  * L'algorithme de tri est celui du tri par fusion.
  * 
- * Ce tri est réalisé sur un tableau d’indices plutôt que directement sur les données mappées *en mémoire.
- * Chaque indice représente la position d’une entrée dans le fichier d’entrée, et les comparaisons sont *effectuées uniquement sur les clés de 4 octets associées à ces indices.
- * Cette approche permet d’éviter de recopier les entrées complètes de 100 octets durant le tri, réduisant ainsi les accès mémoire et le coût des copies.
- * L’algorithme utilise un système de bornes gauche et droite (left et right) qui évoluent récursivement lors des appels à la fonction de tri, 
- * ce qui permet de travailler sur différentes portions du tableau d’indices sans dupliquer l’ensemble du tableau.
- * Les données originales mappées avec mmap ne sont jamais modifiées pendant le tri et ne sont copiées dans le fichier de sortie qu’une seule fois, 
- * une fois l’ordre final des indices déterminé.
+ * Ce tri est réalisé sur un tableau d'indices plutôt que directement sur les données mappées *en mémoire.
+ * Chaque indice représente la position d'une entrée dans le fichier d'entrée, et les comparaisons sont *effectuées uniquement sur les clés de 4 octets associées à ces indices.
+ * Cette approche permet d'éviter de recopier les entrées complètes de 100 octets durant le tri, réduisant ainsi les accès mémoire et le coût des copies.
+ * L'algorithme utilise un système de bornes gauche et droite (left et right) qui évoluent récursivement lors des appels à la fonction de tri, 
+ * ce qui permet de travailler sur différentes portions du tableau d'indices sans dupliquer l'ensemble du tableau.
+ * Les données originales mappées avec mmap ne sont jamais modifiées pendant le tri et ne sont copiées dans le fichier de sortie qu'une seule fois, 
+ * une fois l'ordre final des indices déterminé.
  * 
  * Vu que chaque thread travaille avec une partie différente du tableau d'indice, on a pas besoin d'implémenter un mutex
  * puisqu'il n'y a pas de risques que un thread trie des données qui sont en même temps triées par un autre thread.
  * 
- * On limite volontairement le nombre maximal de threads à 32.
- * Cette borne permet d’éviter la création excessive de threads,
+ * On limite le nombre maximal de threads à 32.
+ * Cette borne permet d'éviter la création excessive de threads,
  * qui pourrait entraîner une dégradation des performances.
  *
- * Cette valeur constitue un compromis raisonnable, indépendant
+ * Cette valeur constitue un bon compromis, indépendant
  * de la machine utilisée (Par exemple, notre machine obtient un résultat optimisé avec exactement 4 threads).
  * 
  ***********************************************/
@@ -91,7 +91,7 @@ void merge_indices(int *indices,int *L, int n1,int *R, int n2,int left,unsigned 
         }
         k++;
     }
-    // Si l’un des deux tableaux triés est épuisé, il suffit de copier le reste de l’autre tableau.
+    // Si l'un des deux tableaux triés est épuisé, il suffit de copier le reste de l'autre tableau.
     while (i < n1) {indices[k] = L[i];i++;k++;}
     while (j < n2) {indices[k] = R[j]; j++; k++;}
 }//Ici on ecris dans indices[k] en écrasant les données parce qu'elles sont transferées avant dans les tableaux temporaires L et R
@@ -112,16 +112,16 @@ void merge_sort(int *indices, int left, int right, unsigned char *keys) {
     merge(indices, left, mid, right, keys);
 }
 
-/*On crée une structure parce que pthread_create n’autorise qu’un seul argument,
+/*On crée une structure parce que pthread_create n'autorise qu'un seul argument,
  donc on regroupe tous les paramètres du thread dans un seul objet.*/
 typedef struct {
-    int *indices;          // Tableau d’indices à trier
-    unsigned char *keys;   // Tableau des clés (lecture seule)
+    int *indices;          // Tableau d'indices à trier
+    unsigned char *keys;   // Tableau des clés 
     int left;              // Borne gauche de la portion à trier
     int right;             // Borne droite de la portion à trier
 } thread_arg_t;
 
-void *thread_sort(void *arg) { // Trie une portion du tableau d’indices avec merge_sort(chauqe thread trie sa partie)
+void *thread_sort(void *arg) { // Trie une portion du tableau d'indices avec merge_sort(chauqe thread trie sa partie)
     thread_arg_t *t = (thread_arg_t *)arg;
     merge_sort(t->indices, t->left, t->right, t->keys);
     return NULL;
@@ -145,12 +145,12 @@ int main(int argc, char **argv) {
     const char *input_filename = argv[1]; // fichier d'input
     const char *output_filename = argv[2]; // fichier d'output 
 
-    // 1) OUVERTURE DE L’INPUT
+    // 1) ouverture de l'input
 
     int fd_in = open(input_filename, O_RDONLY);
     if (fd_in == -1) { perror("open input"); return 1;}
 
-    // 2) LIRE LA TAILLE DU FICHIER
+    // 2) taille du fichier
 
     struct stat st;
     if (fstat(fd_in, &st) == -1) { perror("fstat"); close(fd_in); return 1;}
@@ -172,12 +172,12 @@ int main(int argc, char **argv) {
         nb_used_threads = n_entries;
     }
 
-    // 3) MMAP DU FICHIER D’ENTRÉE
+    // 3) mmap du fichier d'entrée
 
     unsigned char *data_in = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd_in, 0);
     if (data_in == MAP_FAILED) { perror("mmap input"); close(fd_in); return 1;}
 
-    // 4) BUFFER DES CLÉS (4 bytes par entrée)
+    // 4) buffer des cles (4 bytes par entrée)
     unsigned char *keys = malloc(n_entries * KEY_SIZE);
     if (!keys) { perror("malloc keys");munmap(data_in, filesize);close(fd_in);return 1;}
 
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
         memcpy(keys + i*KEY_SIZE, data_in + i*ENTRY_SIZE, KEY_SIZE);
     }
 
-    // 5) TABLEAU DES INDICES (0, 1, 2, ..., n_entries-1)
+    // 5) tableau des indices (0, 1, 2, ..., n_entries-1)
 
     int *indices = malloc(n_entries * sizeof(int));
     if (!indices) { perror("malloc indices"); free(keys); munmap(data_in, filesize); close(fd_in); return 1;}
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
         indices[i] = i;
     }
 
-    // 6) TRI PAR FUSION (sur les indices)
+    // 6) tri par fusion (sur les indices)
 
     if (nb_used_threads == 1) {
         // Version séquentielle
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
     }
 
 
-    // 7) CRÉER LE FICHIER DE SORTIE
+    // 7) créer le fichier de sortie
 
     int fd_out = open(output_filename, O_RDWR | O_CREAT | O_TRUNC, 0666);
     if (fd_out == -1) {perror("open output");free(indices);free(keys);munmap(data_in, filesize);close(fd_in);return 1;}
@@ -249,26 +249,25 @@ int main(int argc, char **argv) {
     if (ftruncate(fd_out, filesize) == -1) {perror("ftruncate");close(fd_out);free(indices);free(keys);munmap(data_in, filesize);
         close(fd_in);return 1;}
 
-    // 8) MMAP DU FICHIER DE SORTIE
+    // 8) mmap du fichier de sortie
 
-    unsigned char *data_out = mmap(NULL, filesize, PROT_READ | PROT_WRITE,
-                                   MAP_SHARED, fd_out, 0);
+    unsigned char *data_out = mmap(NULL, filesize, PROT_READ | PROT_WRITE,MAP_SHARED, fd_out, 0);
     if (data_out == MAP_FAILED) {perror("mmap output");close(fd_out);free(indices);free(keys);munmap(data_in, filesize);
         close(fd_in);
         return 1;
     }
 
-    // 9) COPIE Ordonnée DANS LE FICHIER OUTPUT
+    // 9) copie ordonnée dans le fichier output
 
     for (size_t i = 0; i < n_entries; i++) {
-        int idx = indices[i];  // entrée originale à la position idx
+        int idx = indices[i];  // trier car idx par rapport a data_in en fonction de indices[i] donc ok
         memcpy(data_out + i*ENTRY_SIZE, data_in  + idx*ENTRY_SIZE, ENTRY_SIZE);
     }
 
-    // 10) FSYNC POUR FORCER L’ÉCRITURE SUR DISQUE
+    // 10) fsync pour forcer l'écriture sur disque
     if (fsync(fd_out) == -1) { perror("fsync");}
 
-    // 11) LIBÉRATIONS
+    // 11) libérations mémoire
     munmap(data_out, filesize);
     close(fd_out);
     free(indices);
